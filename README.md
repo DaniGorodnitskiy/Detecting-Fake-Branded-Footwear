@@ -63,15 +63,13 @@ graph TD
 ![Workflow Example](Workflow.png)
 
 **Generated Samples:** A variety of authentic (Green) vs. generated fakes (Red) including typos like "NKE" and low-quality distortions.
-![Examples Strip](results/examples_strip.png)
-!(/Results/Adidas11_fake_6.jpg)
-/Results/Converse2_fake_0.jpg)
+![Examples Strip](/Results/Adidas11_fake_6.jpg) ![Examples Strip](/Results/Converse2_fake_0.jpg)
+![Examples Strip](/Results/Fila15_fake_8.jpg) ![Examples Strip](/Results/NewBalance22_ai_fake_1.jpg)
+![Examples Strip](/Results/Nike11_fake_37_HIGH_s0.70_doubleprint_typo-NKE.jpg) ![Examples Strip](/Results/Nike5_ai_fake_2.jpg)
+
 /Results/Converse6_fake_8.jpg
 /Results/Converse7_fake_0.jpg
-/Results/Fila15_fake_8.jpg
-/Results/NewBalance22_ai_fake_1.jpg
 /Results/New_Balance1_fake_1.png
-/Results/Nike11_fake_37_HIGH_s0.70_doubleprint_typo-NKE.jpg
 /Results/Nike20_fake_21_LOW_s0.55_outline.jpg
 /Results/Nike21_fake_4_HIGH_s0.73_coloroff_typo-NIKY.jpg
 /Results/Nike5_ai_fake_2.jpg
