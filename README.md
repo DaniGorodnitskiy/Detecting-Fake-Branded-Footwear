@@ -126,3 +126,20 @@ Confusion matrix (validation):
 ## Repository structure
 Suggested structure (lightweight + Git-friendly):
 
+
+
+> ⚠️ מומלץ **לא** להעלות דאטה גדול ל־Git רגיל. אם חייבים: להשתמש ב־Git LFS / לשים לינק ל־Drive.
+
+---
+
+## Team Members
+- Daniel Isserlis 
+- Amit Mitzmacher
+- Tal Mitzmacher
+
+
+---
+
+## Notes / Disclaimer
+This project is for academic/research purposes. Brand names/logos are used only to study counterfeit detection and do not imply affiliation with any company.
+
