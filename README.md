@@ -1,314 +1,128 @@
-# Counterfeit Logo Detection (GenAI + CV)
-
-> **TL;DR:** We built an end-to-end pipeline that **generates synthetic counterfeit logo images** using **Stable Diffusion XL (img2img)** and **post-processing defects**, then **trains a ResNet18 classifier** to predict **Real vs Fake** from logo images—even under varied backgrounds and lighting.
-
----
+# Counterfeit Logo Detection (Synthetic Data + CNN Classifier)
 
 ## Project Motivation
-Counterfeit products are a real-world problem in fashion and retail. In practice, **high-quality labeled counterfeit datasets are scarce** (and inconsistent), which makes it hard to train reliable models.
-
-Our project tackles this by combining **Generative AI (diffusion models)** with **classic computer vision training**:
-- Use a small set of authentic logos as seeds
-- Generate many realistic and adversarial counterfeit variations
-- Train a classifier that learns the *visual concept of authenticity* rather than “cheap photo = fake”
+Counterfeit products are everywhere, but *reliable labeled counterfeit image datasets* are rare.  
+So we built our own pipeline: generate realistic counterfeit logo variants with GenAI, then train a classifier to detect **Real vs Fake** logos robustly across different backgrounds.
 
 ---
 
-## Problem Statement
-Given an input image containing a brand logo (on fabric, rubber, embroidery, etc.), classify it as:
+## Problem statement
+Given an image containing a **brand logo** (cropped area from a product photo), classify it as:
+- **Real** (authentic logo appearance)
+- **Fake** (counterfeit-like distortions: wrong typography, warped shape, missing parts, bad printing, etc.)
 
-- **Real** — authentic logo appearance
-- **Fake** — counterfeit indicators such as:
-  - altered typography (e.g., `NIKE → NYKE`)
-  - distorted strokes and thickness
-  - misaligned edges and outlines
-  - perspective warping, blur, double-print, missing parts
-
-**Goal:** build a model that is robust to background changes and photography conditions, and focuses on logo authenticity.
+Goal: learn the *logo semantics* (shape/typography) and not “cheat” by relying on artifacts like image quality or background.
 
 ---
 
-## Visual Abstract
-1. **Collect** a small set of authentic logo images (per brand)  
-2. **Generate** realistic variants of authentic logos (brightness/rotation + low quality)  
-3. **Generate** counterfeit logos using SDXL img2img  
-4. **Apply** additional counterfeit defects (edge jitter, perspective warp, missing letter, etc.)  
-5. **Train** a CNN (ResNet18) to classify **Real vs Fake**  
-6. **Evaluate** via learning curves + confusion matrix + classification report  
+## Visual abstract
+![Visual Abstract](Screenshot%202026-01-29%20165318.png)
 
 ---
 
-## Datasets Used or Collected
-### 1) Real Logos (Collected)
-- Stored under:
-  - `original_logo/<BRAND_NAME>/`
-- These are the seed images used for both:
-  - authentic augmentation (Real class)
-  - diffusion-based counterfeit generation (Fake class)
+## Datasets used or collected
+We created a **custom dataset** because “real counterfeit” data is limited/unreliable.
 
-### 2) Synthetic Authentic Variants (Generated)
-Stored under:
-- `real_augmented/<BRAND_NAME>/`
+### Real (Authentic)
+- Manually collected **logo-only images / logo crops** (multiple brands).
+- Added realistic variations to prevent overfitting (angle/light/quality).
 
-Generated via:
-- small rotations
-- brightness shifts
-- intentionally low-quality copies (to prevent learning “low quality = fake” shortcut)
+### Fake (Synthetic Counterfeit)
+- Generated using **Stable Diffusion XL (Img2Img)** + post-processing defects.
+- Includes both **subtle** and **aggressive** counterfeits (typos + distortions).
 
-### 3) Synthetic Counterfeits (Generated)
-Stored under:
-- `counterfeit/<BRAND_NAME>/`
-
-Generated via:
-- SDXL img2img prompting
-- plus post-processing defects
+### Dataset composition (example)
+![Dataset Composition](Screenshot%202026-01-29%20165346.png)
 
 ---
 
-## Data Augmentation and Generation Methods
+## Data augmentation and generation methods
 
-### A) Authentic augmentation (Real class)
-Implemented in `generate_authentic_variations()`:
-- `Random rotation (-5° to +5°)`
-- `Brightness jitter (0.95–1.05)`
-- **Low-quality simulation**:
-  - downscale → upscale
-  - blur
-  - gaussian noise
+### A) Real augmentations (class: Real)
+We expanded each authentic logo into many “realistic captures”:
+- slight rotation, brightness changes
+- **low quality simulation** (blur + resize artifacts + noise)  
+This specifically solved a failure mode where the model learned: **“low quality = fake”**.
 
-> Motivation: We discovered the classifier tends to learn **artifact shortcuts** (“low quality = fake”).  
-> Fix: Add low-quality authentic examples to the Real class.
-
----
-
-### B) Diffusion generation (Fake class) — SDXL Img2Img
-Implemented in `generate_ai_fakes()` with:
-- `StableDiffusionXLImg2ImgPipeline`
+### B) Fake generation (class: Fake)
+**GenAI stage (SDXL Img2Img):**
+- Generates photorealistic “counterfeit-like” variants
 - Two modes:
-  - **LOW strength** (~0.45–0.55): subtle counterfeits
-  - **HIGH strength** (~0.70–0.88): aggressive counterfeits + misspellings
+  - **LOW strength**: subtle counterfeits
+  - **HIGH strength + typo variants**: aggressive counterfeits (e.g., `NYKE`, `ABIBAS`, etc.)
+
+**Post-defects stage (PIL/Numpy):**
+- perspective/warp
+- outline ring
+- edge jitter
+- thinning / thickening logo strokes
+- missing region / missing “letter-like” parts
+- double-print effect
+- color shifts, blurry edges
 
 ---
 
-### C) Post-generation counterfeit defects (POST_DEFECTS)
-After SDXL generation, we apply one random “defect” to simulate real counterfeit signs:
-
-| Defect | What it simulates |
-|---|---|
-| `thin` / `thicken` | wrong logo stroke thickness |
-| `missing` | missing patch / incomplete print |
-| `doubleprint` | double stamping / offset print |
-| `coloroff` | wrong colors / saturation |
-| `blur` | poor print sharpness |
-| `perspective` | camera angle distortion |
-| `outline` | unnatural thick outline |
-| `edgejitter` | shaky edges / rough stitching |
-| `missingletter` | cropped/erased character |
-
-**Implementation detail:**  
-We create a rough logo mask by assuming **non-white pixels** belong to the logo, then apply morphological operations and alpha compositing.
-
----
-
-### D) Typo / misspelling injection (TYPO_VARIANTS)
-Controlled by:
-- `TYPO_PROB = 0.3`
-
-Example:
-- `Nike → NYKE`, `NIKY`, `N1KE`, `NIIE`
-- `Converse → CONVESE`, `CORNVERSE`
-- etc.
-
-This forces the generator to produce semantic counterfeit signals (not only blur/noise).
-
----
-
-## Workflow Visualization
-(1) Seed Real Logos
-original_logo/<brand>/*.png
-|
-v
-(2) Real Augmentation
-rotation + brightness + low quality
--> real_augmented/<brand>/
-|
-+-----------------------------+
-| |
-v v
-(3) SDXL Img2Img Fake Generation (4) Dataset Build
-subtle + aggressive strengths training_data/Real, Fake
-+ typo injection
-+ post-defects
--> counterfeit/<brand>/
-|
-v
-(5) Train ResNet18 Classifier
-PyTorch + ImageFolder + transforms
-|
-v
-(6) Evaluate + Predict
-curves + confusion matrix + single-image inference
-
+## Workflow visualization
+1. **Collect** a small set of authentic logo images (per brand)
+2. **Generate Real augmentations** (lighting/angle/quality)
+3. **Generate Fake images** (SDXL Img2Img + random defects)
+4. **Build dataset folders**: `Real/` and `Fake/`
+5. **Train classifier** (ResNet18)
+6. **Evaluate** (accuracy/loss curves + confusion matrix)
 
 ---
 
 ## Input/Output Examples
-### Input
-- A logo image (on shoe tongue / patch / embroidery), any background.
+Example: logo extracted → fake logo generated
 
-### Output
-- `Real` or `Fake` with confidence score
+![Example I/O](Screenshot%202026-01-29%20165351.png)
 
-Example inference call:
-```python
-check_logo("/content/drive/MyDrive/originals VS fake/testing/fakeFila1.png")
-Models and Pipelines Used
-Generative Model
-StableDiffusionXLImg2ImgPipeline
+---
 
-Model checkpoint:
+## Models and pipelines used
 
-stabilityai/stable-diffusion-xl-base-1.0
+### 1) Synthetic data generation
+- **StableDiffusionXLImg2ImgPipeline** (`stabilityai/stable-diffusion-xl-base-1.0`)
+- Custom prompt templates per brand
+- Optional typo forcing (probability controlled with `TYPO_PROB`)
+- Post-processing defect functions (PIL/Numpy)
 
-Classifier
-ResNet18 (pretrained)
+### 2) Classification model
+- **ResNet18 (pretrained ImageNet)**  
+- Final layer replaced for **2 classes**: `Real / Fake`
 
-Final layer replaced with 2-class head:
+---
 
-Fake / Real
+## Training process and parameters
+**Data split:** 80% train / 20% validation (stratified)  
+**Transforms (train):**
+- Resize 256 → CenterCrop 224
+- horizontal flip, rotation (±10°)
+- color jitter, random grayscale
+- normalize (ImageNet mean/std)
 
-Training Process and Parameters
-Dataset building
-Creates:
+**Optimization:**
+- Optimizer: `Adam(lr=1e-4)`
+- Loss: `CrossEntropyLoss` + **class weights** (for class imbalance)
+- Epochs: `15`
+- Batch size: `16`
 
-/content/training_data/
-  Real/
-  Fake/
-By copying:
+---
 
-original_logo/** → Real
+## Results
+Training converged quickly with stable validation performance:
 
-counterfeit/** → Fake
+![Loss Curve](Screenshot%202026-01-29%20165338.png)
+![Accuracy Curve](Screenshot%202026-01-29%20165332.png)
 
-Preprocessing / Augmentations (Classifier)
-Train transforms:
+Confusion matrix (validation):
 
-Resize(256) + CenterCrop(224)
+![Confusion Matrix](Screenshot%202026-01-29%20165346.png)
 
-Horizontal flip
+**Key takeaway:** After adding *low-quality Real samples*, the model stopped using image quality as a shortcut and focused more on *logo-specific features*.
 
-Rotation(10)
+---
 
-Color jitter
+## Repository structure
+Suggested structure (lightweight + Git-friendly):
 
-Random grayscale
-
-Normalize (ImageNet)
-
-Validation transforms:
-
-Resize(256) + CenterCrop(224)
-
-Normalize (ImageNet)
-
-Training config
-Optimizer: Adam
-
-LR: 1e-4
-
-Loss: CrossEntropyLoss with class weights (handles imbalance)
-
-Batch size: 16
-
-Epochs: 15
-
-Best checkpoint: saved to:
-
-models/logo_resnet18.pth
-
-Results
-We report:
-
-Train/Validation Accuracy
-
-Train/Validation Loss
-
-Confusion Matrix
-
-Precision / Recall / F1 via classification report
-
-Note: final performance depends on dataset size, brand variety, and how realistic the synthetic defects are.
-
-Repository Structure
-Suggested structure for the repo:
-
-.
-├── notebooks/
-│   └── main_pipeline.ipynb
-├── src/
-│   ├── generation/
-│   │   ├── sdxl_fake_generator.py
-│   │   └── post_defects.py
-│   ├── training/
-│   │   ├── dataset_builder.py
-│   │   ├── train_resnet.py
-│   │   └── evaluate.py
-│   └── inference/
-│       └── predict.py
-├── assets/
-│   ├── visual_abstract.png
-│   ├── examples_real_fake.png
-│   └── confusion_matrix.png
-├── requirements.txt
-├── README.md
-└── LICENSE
-Team Members
-Daniel (you)
-
-<Member 2>
-
-<Member 3>
-
-How to Run (Colab-friendly)
-Mount Drive:
-
-from google.colab import drive
-drive.mount('/content/drive')
-Generate data:
-
-set BRAND_NAME
-
-ensure seed logos exist in original_logo/<brand>/
-
-run generator to populate:
-
-real_augmented/<brand>/
-
-counterfeit/<brand>/
-
-Prepare dataset:
-
-runs prepare_dataset() → creates /content/training_data
-
-Train:
-
-run train_model(epochs=15)
-
-Evaluate:
-
-plot_history(history)
-
-evaluate_model()
-
-Inference:
-
-check_logo(path_to_image)
-
-Notes / Lessons Learned
-Shortcut learning: Model initially learned that “low quality = fake”.
-✅ Fixed by adding low-quality authentic images into the Real class.
-
-Background diversity: Since your backgrounds are highly varied, heavy augmentation is critical.
-✅ Used color jitter + grayscale + rotation + normalization.
-
-Synthetic data realism: Post-defects improve realism beyond pure diffusion output.
