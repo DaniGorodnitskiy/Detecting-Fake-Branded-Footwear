@@ -129,14 +129,16 @@ Our model achieved state-of-the-art performance on the test set.
 As shown below, the **Training (Blue)** and **Validation (Red)** curves rise together and stabilize around **99%**. The Loss curve decreases consistently, indicating no overfitting.
 
 <p float="left">
-  <img src="result1" width="60%" />
-  <img src="result2.png" width="60% /> 
+  <img src="result1.png" width="40%" />
+  <img src="result2.png" width="40% /> 
 </p>
 
 ### Confusion Matrix Analysis
 The model demonstrated exceptional precision on the held-out test set (736 images):
 
-![Confusion Matrix](4Errors.png)
+<p float="left">
+  <img src="4Errors.png" width="40%" />
+</p>
 
 * **Correctly Identified Fakes:** 469 ✅
 * **Correctly Identified Reals:** 263 ✅
