@@ -44,6 +44,7 @@ BrandGuard/
 │   └── examples_strip.png
 │
 └── README.md                      # Project documentation
+```
 ## Datasets used or collected
 
 ### Real (Authentic)
