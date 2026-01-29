@@ -89,7 +89,9 @@ The fake dataset is split to ensure the model learns both basic and advanced for
 * **60% Low-Level Fakes:** Blur, noise, geometric distortions.
 * **40% High-Level Fakes:** GenAI-based semantic changes (Typos, wrong logos).
 
-![Dataset Hierarchy](results/dataset_hierarchy.png)
+<p align="center">
+  <img src="stats.png" width="60%">
+</p>
 
 ---
 
@@ -127,14 +129,14 @@ Our model achieved state-of-the-art performance on the test set.
 As shown below, the **Training (Blue)** and **Validation (Red)** curves rise together and stabilize around **99%**. The Loss curve decreases consistently, indicating no overfitting.
 
 <p float="left">
-  <img src="results/accuracy_plot.png" width="45%" />
-  <img src="results/loss_plot.png" width="45%" /> 
+  <img src="result1" width="60%" />
+  <img src="result2.png" width="60% /> 
 </p>
 
 ### Confusion Matrix Analysis
 The model demonstrated exceptional precision on the held-out test set (736 images):
 
-![Confusion Matrix](results/confusion_matrix.png)
+![Confusion Matrix](4Errors.png)
 
 * **Correctly Identified Fakes:** 469 ✅
 * **Correctly Identified Reals:** 263 ✅
