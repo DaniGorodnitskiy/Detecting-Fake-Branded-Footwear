@@ -73,15 +73,6 @@ graph TD
   <img src="Results/Nike5_ai_fake_2.jpg" width="30%">
   <img src="Results//Nike21_fake_4_HIGH_s0.73_coloroff_typo-NIKY.jpg" width="30%">
 </p>
-![Examples Strip](/Results/Adidas11_fake_6.jpg) ![Examples Strip](/Results/Converse2_fake_0.jpg)
-![Examples Strip](/Results/Fila15_fake_8.jpg) ![Examples Strip](/Results/NewBalance22_ai_fake_1.jpg)
-![Examples Strip](/Results/Nike11_fake_37_HIGH_s0.70_doubleprint_typo-NKE.jpg) ![Examples Strip](/Results/Nike5_ai_fake_2.jpg)
-
-/Results/Converse6_fake_8.jpg
-/Results/Converse7_fake_0.jpg
-/Results/New_Balance1_fake_1.png
-/Results/Nike20_fake_21_LOW_s0.55_outline.jpg
-/Results/Nike21_fake_4_HIGH_s0.73_coloroff_typo-NIKY.jpg
 
 ---
 
