@@ -60,7 +60,7 @@ graph TD
 ```
 ### Visual Examples
 **Workflow Process:** From Original to Cropped to AI-Generated Fake.
-![Workflow Example](results/Workflow.png)
+![Workflow Example](main/Workflow.png)
 
 **Generated Samples:** A variety of authentic (Green) vs. generated fakes (Red) including typos like "Niky" and low-quality distortions.
 ![Examples Strip](results/examples_strip.png)
