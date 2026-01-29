@@ -64,19 +64,19 @@ graph TD
 
 **Generated Samples:** A variety of authentic (Green) vs. generated fakes (Red) including typos like "NKE" and low-quality distortions.
 <p align="center">
-  <img src="results/Adidas11_fake_6.jpg" width="100%" title="Generated Samples">
+  <img src="/results/Adidas11_fake_6.jpg" width="100%" title="Generated Samples">
 </p>
 <p align="center">
-  <img src="results/Converse2_fake_0.jpg" width="100%" title="Generated Samples">
+  <img src="/results/Converse2_fake_0.jpg" width="100%" title="Generated Samples">
 </p>
 <p align="center">
-  <img src="results//Results/Fila15_fake_8.jpg" width="100%" title="Generated Samples">
+  <img src="/results//Results/Fila15_fake_8.jpg" width="100%" title="Generated Samples">
 </p>
 <p align="center">
-  <img src="results/NewBalance22_ai_fake_1.jpg" width="100%" title="Generated Samples">
+  <img src="/results/NewBalance22_ai_fake_1.jpg" width="100%" title="Generated Samples">
 </p>
 <p align="center">
-  <img src="results/Nike11_fake_37_HIGH_s0.70_doubleprint_typo-NKE.jpg" width="100%" title="Generated Samples">
+  <img src="/results/Nike11_fake_37_HIGH_s0.70_doubleprint_typo-NKE.jpg" width="100%" title="Generated Samples">
 </p>
 <p align="center">
   <img src="/Results/Nike5_ai_fake_2.jpg" width="100%" title="Generated Samples">
