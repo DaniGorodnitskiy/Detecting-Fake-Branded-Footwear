@@ -1,174 +1,60 @@
-# BrandGuard — Counterfeit Logo Detection (GenAI Synthetic Data + ResNet18)
+# BrandGuard – GenAI-Based Pipeline for Counterfeit Sneaker Detection 👟🚫
 
-BrandGuard is an end-to-end pipeline for **detecting counterfeit logos** using:
-1) **Synthetic counterfeit generation** (SDXL Img2Img + post-defects)  
-2) **Binary classification** (ResNet18: Real vs Fake)
-
-The focus is intentionally **logo-level** (not “the whole shoe”), so the model learns *logo semantics* (shape/typography/placement cues) instead of overfitting to backgrounds.
+**Automated detection of high-quality and low-quality counterfeit sneaker logos using synthetic data generation and Deep Learning.**
 
 ---
 
-## Project Motivation
-Real-world counterfeit datasets are limited, noisy, and hard to label.  
-So instead of hunting for “perfect fake data”, we generate **controlled, realistic counterfeits** and train a classifier that can generalize across **different backgrounds, materials, and image quality**.
+## 👥 Team Members
+* **Tal Mitzmacher**
+* **Amit Mitzmacher**
+* **Danny Isserlis**
 
 ---
 
-## Problem statement
-Given an input image that contains a brand logo (preferably a crop/close-up), classify it as:
-- **Real**: authentic logo
-- **Fake**: counterfeit-like distortions (typos, warped geometry, missing strokes, printing artifacts, etc.)
+## 1. Project Motivation & Definition 🎯
+**The Problem:** The counterfeit market is evolving. Distinguishing between a high-quality fake and an authentic product is becoming increasingly difficult due to a lack of documented fake data.
+
+**Our Goal:** Develop a **Generative Data Pipeline** to create a synthetic dataset of counterfeits and train a classification model (**ResNet18**) to distinguish them with high precision.
+
+**The Innovation:** Instead of relying on scarce real-world fake samples, our system generates variations that alter the logo's semantics (e.g., typos, graphic changes) without compromising its realistic texture.
 
 ---
 
-## Visual abstract
-![Workflow Example](results/workflow_example.png)
+## 2. Visual Abstract (Workflow) 🖼️
 
----
+The system operates in a closed loop: extracting the authentic logo, generating sophisticated fakes using Stable Diffusion XL (SDXL), and training a classifier on the hybrid dataset.
 
-## Repository structure
-```text
-BrandGuard/
-├── data_generation/
-│   ├── generate_fakes.py          # SDXL Img2Img + counterfeit defects
-│
-├── model_training/
-│   ├── train_classifier.py        # ResNet18 training + evaluation
-│
-├── results/                       # Images and Graphs
-│   ├── accuracy_plot.png
-│   ├── loss_plot.png
-│   ├── confusion_matrix.png
-│   ├── dataset_hierarchy.png
-│   ├── workflow_example.png
-│   └── examples_strip.png
-│
-└── README.md                      # Project documentation
+```mermaid
+graph TD
+    subgraph Input
+        A[Original Sneaker Image]
+    end
+
+    subgraph Preprocessing
+        B[Logo Cropping]
+        C[Data Balancing]
+    end
+
+    subgraph GenAI_Pipeline ["Generative AI Pipeline (SDXL)"]
+        direction TB
+        D{Dual-Strength Generation}
+        D1[Low Strength 0.45-0.55<br/>Realistic/Subtle Fakes]
+        D2[High Strength 0.70-0.88<br/>Aggressive/Typo Fakes]
+        E[Quality Control<br/>Negative Prompts + Weighted Loss]
+    end
+
+    subgraph Classification
+        F[ResNet18 Model<br/>Transfer Learning]
+        G[Binary Classification<br/>Real vs Fake]
+    end
+
+    A --> B --> C
+    C --> D
+    D --> D1 & D2 --> E
+    E --> F --> G
+    
+    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style D fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style F fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+
 ```
-## Datasets used or collected
-
-### Real (Authentic)
-Source: `original_logo/<BRAND>/...`  
-Includes:
-- original logo images (logo-only / close-up)
-- **real augmentations**:
-  - small rotations
-  - brightness changes
-  - **low-quality simulation** (blur + noise + down/upscale artifacts)
-
-> Why include low-quality *Real* images?  
-> We found the model tends to learn a shortcut: **“low quality = fake”**.  
-> So we inject low-quality Real samples to force the model to learn *logo features*, not image quality.
-
-### Fake (Synthetic Counterfeit)
-Source: generated into `counterfeit/<BRAND>/...`  
-Generated with:
-- **SDXL Img2Img** (`stabilityai/stable-diffusion-xl-base-1.0`)
-- brand-specific photorealistic prompts
-- two regimes:
-  - **LOW strength** (subtle counterfeits)
-  - **HIGH strength + typo forcing** (aggressive counterfeits)
-
-Dataset composition example:  
-![Dataset Hierarchy](results/dataset_hierarchy.png)
-
----
-
-## Data augmentation and generation methods
-
-### 1) Real augmentations (non-fake)
-Implemented in `generate_authentic_variations()`:
-- `rotate(-5..5)`
-- `brightness(0.95..1.05)`
-- `make_image_low_quality()` (blur + noise + resize artifacts)
-
-Output goes to:
-- `real_augmented/<BRAND>/...` (recommended separation from originals)
-
-### 2) Fake generation (GenAI)
-Implemented in `generate_ai_fakes()`:
-- SDXL Img2Img runs on a resized 768×768 version of the input logo
-- Uses brand prompt templates (Converse/Nike/Adidas/...)
-- Chooses randomly between:
-  - subtle mode: `strength ~ 0.45–0.55`
-  - aggressive mode: `strength ~ 0.70–0.88` + typo forcing with probability `TYPO_PROB`
-
-### 3) Post-defects (classic image ops)
-After SDXL generates a fake, we apply one random **post defect** to simulate printing/manufacturing errors:
-- thin / thicken strokes
-- missing parts
-- double print
-- color shift
-- blur edges
-- **perspective warp**
-- outline ring
-- **edge jitter**
-- missing-letter style removal
-
-This is what gives you both:
-- “looks almost real but off”
-- and “clearly wrong counterfeit”
-
-Example strip:  
-![Examples Strip](results/examples_strip.png)
-
----
-
-## Workflow visualization
-1. Put authentic logo images into: `original_logo/<BRAND>/`
-2. Run `generate_fakes.py`
-   - generates **Real augmentations** into `real_augmented/<BRAND>/`
-   - generates **Fake counterfeits** into `counterfeit/<BRAND>/`
-3. Run `train_classifier.py`
-   - builds a train folder: `/content/training_data/{Real,Fake}`
-   - trains **ResNet18** on Real vs Fake
-   - saves model: `models/logo_resnet18.pth`
-   - outputs plots + confusion matrix
-
----
-
-## Training process and parameters
-Training code is in `model_training/train_classifier.py`.
-
-### Data preparation
-- Copies everything from:
-  - `original_logo/**` → `training_data/Real`
-  - `counterfeit/**`   → `training_data/Fake`
-
-### Transforms
-Train:
-- Resize 256 → CenterCrop 224
-- RandomHorizontalFlip
-- RandomRotation(10)
-- ColorJitter(brightness=0.3, contrast=0.3)
-- RandomGrayscale(p=0.3)
-- Normalize (ImageNet mean/std)
-
-Val:
-- Resize 256 → CenterCrop 224
-- Normalize
-
-### Hyperparameters
-- Split: 80/20 (stratified)
-- Batch size: 16
-- Epochs: 15
-- Optimizer: Adam (lr=1e-4)
-- Loss: CrossEntropy + class weights (handles imbalance)
-
----
-
-## Results
-Accuracy / Loss curves:
-![Accuracy](results/accuracy_plot.png)
-![Loss](results/loss_plot.png)
-
-Confusion matrix:
-![Confusion Matrix](results/confusion_matrix.png)
-
----
-
-## How to run
-
-### 1) Generate synthetic dataset
-```bash
-python data_generation/generate_fakes.py
